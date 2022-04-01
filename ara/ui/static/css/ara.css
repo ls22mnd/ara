@@ -1,31 +1,31 @@
 .table > thead > tr > th {
-    vertical-align: middle;
+  vertical-align: middle;
 }
 
 .table > tbody > tr > td {
-    vertical-align: middle;
+  vertical-align: middle;
 }
 
 .navbar {
-    padding: 0.75rem 1.0rem !important;
+  padding: 0.75rem 1.0rem !important;
 }
 
 .card-header {
-    padding: 0.3rem 1.0rem !important;
+  padding: 0.3rem 1.0rem !important;
 }
 
 .card-footer {
-    padding: 0.3rem 1.0rem !important;
+  padding: 0.3rem 1.0rem !important;
 }
 
 .ara-label {
-    font-size: 90% !important;
-    padding: 0.10rem 0.25rem !important;
-    margin-bottom: 3px;
+  font-size: 90% !important;
+  padding: 0.10rem 0.25rem !important;
+  margin-bottom: 3px;
 }
 
 .ara-result-status-badge {
-    font-size: 90% !important;
+  font-size: 90% !important;
 }
 
 .custom-checkbox .custom-control-input:checked ~ .custom-control-label::before {
@@ -38,4 +38,20 @@
 
 .tooltip {
   pointer-events: none;
+}
+
+.playbook-status {
+  display: flex;
+}
+
+.playbook-status .alert {
+  width: 100%;
+}
+
+.playbook-status .alert:hover {
+  filter: brightness(75%);
+}
+
+.playbook-status .alert small {
+  display: block;
 }

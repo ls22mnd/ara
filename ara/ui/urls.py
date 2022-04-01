@@ -13,4 +13,5 @@ urlpatterns = [
     path("files/<int:pk>.html", views.File.as_view(), name="file"),
     path("hosts/<int:pk>.html", views.Host.as_view(), name="host"),
     path("records/<int:pk>.html", views.Record.as_view(), name="record"),
+    path("dashboard", views.Dashboard.as_view(), name="dashboard"),
 ]

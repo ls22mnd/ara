@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% load datetime_formatting %}
+{% load operation %}
+{% block title %}| Dashboard{% endblock %}
+{% block body %}
+  <div class="row">
+    {% for state in states %}
+      <div class="col-xs-6 col-lg-3">
+        <div class="card mb-4">
+          <div class="card-body">
+            <h5 class="card-title">{{ state.host.name }}</h5>
+            {% for playbook in state.playbooks %}
+              <div class="playbook-status">
+                <div class="alert alert-{{ playbook|get_playbook_alert_type }}" role="alert">
+                  <div>{{ playbook|get_playbook_name }}</div>
+                  <small>{{ playbook.ended | parse_date | timesince }} ago</small>
+                </div>
+              </div>
+            {% endfor %}
+          </div>
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+{% endblock %}

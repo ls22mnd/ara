@@ -335,9 +335,38 @@ class Record(generics.RetrieveAPIView):
         return Response({"record": serializer.data, "static_generation": False, "page": "result"})
 
 
-class Dashboard(generics.RetrieveAPIView):
+class Dashboard(generics.ListAPIView):
+    queryset = models.Host.objects.all()
     renderer_classes = [TemplateHTMLRenderer]
     template_name = "dashboard.html"
 
     def get(self, request, *args, **kwargs):
-        models.Host.objects.all().query
+        data = {}
+        results = (
+            models.Result.objects
+                .prefetch_related('host', 'playbook')
+                .order_by('host__id', 'playbook__id')
+                .all()
+        )
+        for r in results:
+            if r.host.name not in data:
+                data[r.host.name] = dict(host=r.host, playbooks={})
+            playbooks = data[r.host.name]['playbooks']
+            if r.playbook.id not in playbooks:
+                playbooks[r.playbook.id] = r.playbook
+
+        states = []
+        for d in data.values():
+            states.append(dict(
+                host=serializers.SimpleHostSerializer(d['host']).data,
+                playbooks=serializers.ListPlaybookSerializer(
+                    sorted(d['playbooks'].values(), key=lambda p: p.id, reverse=True),
+                    many=True,
+                ).data,
+            ))
+
+        return Response(dict(
+            page='dashboard',
+            states=states,
+            static_generation=False,
+        ))
