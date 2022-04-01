@@ -36,8 +36,13 @@ def format_duration(duration):
 
 
 @register.filter(name="format_date")
-def format_datetime(datetime):
-    return parse_datetime(datetime).strftime("%d %b %Y %H:%M:%S %z")
+def format_datetime(dt: datetime.datetime):
+    return parse_datetime(dt).strftime("%d %b %Y %H:%M:%S %z")
+
+
+@register.filter(name="parse_date")
+def parse_datetime(dt: str):
+    return datetime.datetime.fromisoformat(dt)
 
 
 @register.simple_tag(name="past_timestamp")
