@@ -141,22 +141,39 @@ class Playbook(generics.RetrieveAPIView):
     template_name = "playbook.html"
 
     def get(self, request, *args, **kwargs):
+        play_id = request.GET.get('play', None)
         playbook = serializers.DetailedPlaybookSerializer(self.get_object())
+        playbook_id = playbook.data['id']
         hosts = serializers.ListHostSerializer(
-            models.Host.objects.filter(playbook=playbook.data["id"]).order_by("name").all(), many=True
+            models.Host.objects.filter(playbook=playbook_id).order_by("name").all(),
+            many=True
         )
         files = serializers.ListFileSerializer(
-            models.File.objects.filter(playbook=playbook.data["id"]).all(), many=True
+            models.File.objects.filter(playbook=playbook_id).all(),
+            many=True,
         )
         records = serializers.ListRecordSerializer(
-            models.Record.objects.filter(playbook=playbook.data["id"]).all(), many=True
+            models.Record.objects.filter(playbook=playbook_id).all(),
+            many=True,
         )
+        plays = serializers.ListPlaySerializer(
+            models.Play.objects.filter(playbook=playbook_id).all(),
+            many=True,
+        )
+
+        play = max(plays.data, key=lambda data: data['id'])
+        if play_id is not None:
+            play = next(filter(lambda d: d['id'] == int(play_id), plays.data), None)
 
         order = "-started"
         if "order" in request.GET:
             order = request.GET["order"]
-        result_queryset = models.Result.objects.filter(playbook=playbook.data["id"]).order_by(order).all()
-        result_filter = filters.ResultFilter(request.GET, queryset=result_queryset)
+
+        result_qs = models.Result.objects.filter(playbook=playbook.data["id"]).order_by(order)
+        if play is not None:
+            result_qs = result_qs.filter(play=play['id'])
+
+        result_filter = filters.ResultFilter(request.GET, queryset=result_qs)
 
         page = self.paginate_queryset(result_filter.qs)
         if page is not None:
@@ -171,8 +188,10 @@ class Playbook(generics.RetrieveAPIView):
             host = models.Host.objects.get(pk=result["host"])
             result["host"] = serializers.SimpleHostSerializer(host).data
             if result["delegated_to"]:
-                delegated_to = [models.Host.objects.get(pk=delegated) for delegated in result["delegated_to"]]
-                result["delegated_to"] = serializers.SimpleHostSerializer(delegated_to, many=True).data
+                delegated_to = [models.Host.objects.get(pk=delegated) for delegated in
+                                result["delegated_to"]]
+                result["delegated_to"] = serializers.SimpleHostSerializer(delegated_to,
+                                                                          many=True).data
         paginated_results = self.get_paginated_response(serializer.data)
 
         if self.paginator.count > (self.paginator.offset + self.paginator.limit):
@@ -187,7 +206,6 @@ class Playbook(generics.RetrieveAPIView):
 
         search_form = forms.ResultSearchForm(request.GET)
 
-        # fmt: off
         return Response(dict(
             current_page_results=current_page_results,
             expand_search=expand_search,
@@ -195,12 +213,13 @@ class Playbook(generics.RetrieveAPIView):
             hosts=hosts.data,
             page="playbook",
             playbook=playbook.data,
+            plays=plays.data,
+            selected_play=play,
             records=records.data,
             results=paginated_results.data,
             search_form=search_form,
             static_generation=False,
         ))
-        # fmt: on
 
 
 class Host(generics.RetrieveAPIView):
@@ -219,7 +238,12 @@ class Host(generics.RetrieveAPIView):
         order = "-started"
         if "order" in request.GET:
             order = request.GET["order"]
-        result_queryset = models.Result.objects.filter(host=host_serializer.data["id"]).order_by(order).all()
+        result_queryset = (
+            models.Result.objects
+                .filter(host=host_serializer.data["id"])
+                .order_by(order)
+                .all()
+        )
         result_filter = filters.ResultFilter(request.GET, queryset=result_queryset)
 
         page = self.paginate_queryset(result_filter.qs)
@@ -233,8 +257,10 @@ class Host(generics.RetrieveAPIView):
             task = models.Task.objects.get(pk=result["task"])
             result["task"] = serializers.SimpleTaskSerializer(task).data
             if result["delegated_to"]:
-                delegated_to = [models.Host.objects.get(pk=delegated) for delegated in result["delegated_to"]]
-                result["delegated_to"] = serializers.SimpleHostSerializer(delegated_to, many=True).data
+                delegated_to = [models.Host.objects.get(pk=delegated) for delegated in
+                                result["delegated_to"]]
+                result["delegated_to"] = serializers.SimpleHostSerializer(delegated_to,
+                                                                          many=True).data
         paginated_results = self.get_paginated_response(result_serializer.data)
 
         if self.paginator.count > (self.paginator.offset + self.paginator.limit):
@@ -307,3 +333,11 @@ class Record(generics.RetrieveAPIView):
         record = self.get_object()
         serializer = serializers.DetailedRecordSerializer(record)
         return Response({"record": serializer.data, "static_generation": False, "page": "result"})
+
+
+class Dashboard(generics.RetrieveAPIView):
+    renderer_classes = [TemplateHTMLRenderer]
+    template_name = "dashboard.html"
+
+    def get(self, request, *args, **kwargs):
+        models.Host.objects.all().query

@@ -33,6 +33,16 @@
                   <div class="card-body">
                     <div class="form-row">
                       <div class="form-group col-xl-4">
+                        <label for="play" {% if request.GET.play %}style="font-weight:bold;"{% endif %}>Play ID</label>
+                        <select class="form-control" id="play" name="play">
+                          {% for play in plays %}
+                            <option value="{{ play.id }}"{% if selected_play.id == play.id %} selected{% endif %}>
+                              {{ play.id }} / {{ play.started | parse_date | timesince }} ago
+                            </option>
+                          {% endfor %}
+                        </select>
+                      </div>
+                      <div class="form-group col-xl-4">
                         <label for="host" {% if request.GET.host %}style="font-weight:bold;"{% endif %}>Host ID</label>
                         <input type="text" class="form-control" id="host" name="host" placeholder="ex: 1234" value="{{ search_form.host.value | default_if_none:'' }}">
                       </div>
