@@ -3,17 +3,17 @@
 {% load operation %}
 {% block title %}| Dashboard{% endblock %}
 {% block body %}
-  <div class="row">
-    {% for state in states %}
+  <div id="dashboard" class="row">
+    {% for hostname, results in states.items %}
       <div class="col-xs-6 col-lg-3">
         <div class="card mb-4">
           <div class="card-body">
-            <h5 class="card-title">{{ state.host.name }}</h5>
-            {% for playbook in state.playbooks %}
+            <h5 class="card-title">{{ hostname }}</h5>
+            {% for res in results %}
               <div class="playbook-status">
-                <div class="alert alert-{{ playbook|get_playbook_alert_type }}" role="alert">
-                  <div>{{ playbook|get_playbook_name }}</div>
-                  <small>{{ playbook.ended | parse_date | timesince }} ago</small>
+                <div class="alert alert-{{ res.status|get_play_alert_type }}" role="alert">
+                  <div class="playbook-name">{{ res.playbook|get_playbook_name }}</div>
+                  <small>{{ res.playbook.ended | parse_date | timesince }} ago</small>
                 </div>
               </div>
             {% endfor %}

@@ -40,6 +40,11 @@
   pointer-events: none;
 }
 
+#dashboard .card-title {
+  padding-bottom: 8px;
+  border-bottom: 1px solid #444;
+}
+
 .playbook-status {
   display: flex;
 }
@@ -54,4 +59,10 @@
 
 .playbook-status .alert small {
   display: block;
+}
+
+.playbook-status .alert .playbook-name {
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }

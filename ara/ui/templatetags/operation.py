@@ -2,21 +2,22 @@ import os
 
 from django import template
 
+from ara.api.models import Playbook
+
 register = template.Library()
 
 
 @register.filter(name='get_playbook_name')
-def get_playbook_name(playbook):
+def get_playbook_name(playbook: Playbook):
     return '/'.join(os.path.dirname(playbook['path']).split('/')[-2:])
 
 
-@register.filter(name='get_playbook_alert_type')
-def get_playbook_alert_type(playbook):
-    s = playbook['status']
-    if s == 'running':
+@register.filter(name='get_play_alert_type')
+def get_play_alert_type(status: str):
+    if status == 'running':
         return 'info'
-    elif s == 'completed':
+    elif status == 'completed':
         return 'success'
-    elif s == 'failed':
+    elif status == 'failed':
         return 'danger'
     return 'dark'

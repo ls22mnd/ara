@@ -1,4 +1,6 @@
 import codecs
+import collections
+import operator
 
 from rest_framework import generics
 from rest_framework.renderers import TemplateHTMLRenderer
@@ -344,26 +346,35 @@ class Dashboard(generics.ListAPIView):
         data = {}
         results = (
             models.Result.objects
-                .prefetch_related('host', 'playbook')
-                .order_by('host__id', 'playbook__id')
+                .prefetch_related('host', 'play', 'play__playbook')
+                .order_by('host__id', 'playbook__id', '-play__id')
                 .all()
         )
         for r in results:
-            if r.host.name not in data:
-                data[r.host.name] = dict(host=r.host, playbooks={})
-            playbooks = data[r.host.name]['playbooks']
-            if r.playbook.id not in playbooks:
-                playbooks[r.playbook.id] = r.playbook
+            key = (r.host.name, r.playbook.id)
+            if key not in data:
+                data[key] = dict(host=r.host, play=None, playbook=None, status=None)
 
-        states = []
-        for d in data.values():
-            states.append(dict(
-                host=serializers.SimpleHostSerializer(d['host']).data,
-                playbooks=serializers.ListPlaybookSerializer(
-                    sorted(d['playbooks'].values(), key=lambda p: p.id, reverse=True),
-                    many=True,
-                ).data,
+            if (play := data[key]['play']) is None or r.play.id > play.id:
+                data[key]['play'] = r.play
+                data[key].update(
+                    host=r.host,
+                    play=r.play,
+                    playbook=r.playbook,
+                    status='failed' if r.host.failed + r.host.unreachable > 0 else 'completed',
+                )
+
+        states = collections.defaultdict(list)
+        for key in data:
+            hostname, playbook_id = key
+            result = data[key]
+            states[hostname].append(dict(
+                host=serializers.SimpleHostSerializer(result['host']).data,
+                play=serializers.PlaySerializer(result['play']).data,
+                playbook=serializers.SimplePlaybookSerializer(result['playbook']).data,
+                status=result['status'],
             ))
+        states = collections.OrderedDict(sorted(states.items(), key=operator.itemgetter(0)))
 
         return Response(dict(
             page='dashboard',
