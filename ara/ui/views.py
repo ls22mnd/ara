@@ -2,6 +2,7 @@ import codecs
 import collections
 import operator
 
+from django.db.models import Q
 from rest_framework import generics
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
@@ -343,13 +344,25 @@ class Dashboard(generics.ListAPIView):
     template_name = "dashboard.html"
 
     def get(self, request, *args, **kwargs):
+        q = request.GET.get('q', None)
         data = {}
-        results = (
+        result_qs = (
             models.Result.objects
                 .prefetch_related('host', 'play', 'play__playbook')
                 .order_by('host__id', 'playbook__id', '-play__id')
-                .all()
         )
+        if q is not None:
+            result_qs = (
+                result_qs
+                    .select_related('host', 'playbook')
+                    .filter(
+                        Q(host__name__contains=q)
+                        | Q(playbook__name__contains=q)
+                        | Q(playbook__path__contains=q)
+                    )
+            )
+        results = result_qs.all()
+
         for r in results:
             key = (r.host.name, r.playbook.id)
             if key not in data:

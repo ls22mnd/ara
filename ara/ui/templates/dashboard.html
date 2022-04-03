@@ -4,6 +4,18 @@
 {% block title %}| Dashboard{% endblock %}
 {% block body %}
   <div id="dashboard" class="row">
+    <div class="col-12">
+      <div class="row mb-3">
+        <form method="get" action="{% url 'ui:dashboard' %}" class="col-md-6 col-lg-4">
+          <label for="q" class="sr-only">Search</label>
+          <input
+              type="text" class="form-control" id="q" name="q"
+              placeholder="host name or playbook name"
+              value='{{ request.query_params.q }}' />
+        </form>
+        <button type="button" class="btn btn-primary col-1">Search</button>
+      </div>
+    </div>
     {% for hostname, results in states.items %}
       <div class="col-xs-6 col-lg-3">
         <div class="card mb-4">
