@@ -47,6 +47,7 @@
 
 .playbook-status {
   display: flex;
+  cursor: pointer;
 }
 
 .playbook-status .alert {

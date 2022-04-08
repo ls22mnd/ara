@@ -43,6 +43,10 @@
   <script>
     $(function () {
       $('[data-toggle="tooltip"]').tooltip();
+      $('.playbook-status').click((e) => {
+        const { playbookId } = e.currentTarget.dataset;
+        location.href = `/playbooks/${playbookId}.html`;
+      })
     });
   </script>
 {% endblock %}
