@@ -77,10 +77,11 @@ if "root" in LOGGING:
     del LOGGING["root"]
 
 # Django built-in server and npm development server
-ALLOWED_HOSTS = settings.get("ALLOWED_HOSTS", ["::1", "127.0.0.1", "localhost"])
-CORS_ORIGIN_WHITELIST = settings.get("CORS_ORIGIN_WHITELIST", ["http://127.0.0.1:8000", "http://localhost:3000"])
+ALLOWED_HOSTS = settings.get("ALLOWED_HOSTS", ["*"])
+# CORS_ORIGIN_WHITELIST = settings.get("CORS_ORIGIN_WHITELIST",
+#                                      ["http://127.0.0.1:8000", "http://localhost:3000"])
 CORS_ORIGIN_REGEX_WHITELIST = settings.get("CORS_ORIGIN_REGEX_WHITELIST", [])
-CORS_ORIGIN_ALLOW_ALL = settings.get("CORS_ORIGIN_ALLOW_ALL", False)
+CORS_ORIGIN_ALLOW_ALL = True
 CSRF_TRUSTED_ORIGINS = settings.get("CSRF_TRUSTED_ORIGINS", [])
 
 ADMINS = settings.get("ADMINS", ())
@@ -175,17 +176,17 @@ else:
 
 # fmt: off
 MIDDLEWARE = [
-    "django.middleware.security.SecurityMiddleware",
-    "whitenoise.middleware.WhiteNoiseMiddleware",
-    "django.contrib.sessions.middleware.SessionMiddleware",
-    "corsheaders.middleware.CorsMiddleware",
-    "django.middleware.common.CommonMiddleware",
-    "django.middleware.csrf.CsrfViewMiddleware",
-    "django.contrib.auth.middleware.AuthenticationMiddleware",
-] + EXTERNAL_AUTH_MIDDLEWARE + [
-    "django.contrib.messages.middleware.MessageMiddleware",
-    "django.middleware.clickjacking.XFrameOptionsMiddleware"
-]
+                 "django.middleware.security.SecurityMiddleware",
+                 "whitenoise.middleware.WhiteNoiseMiddleware",
+                 "django.contrib.sessions.middleware.SessionMiddleware",
+                 "corsheaders.middleware.CorsMiddleware",
+                 "django.middleware.common.CommonMiddleware",
+                 "django.middleware.csrf.CsrfViewMiddleware",
+                 "django.contrib.auth.middleware.AuthenticationMiddleware",
+             ] + EXTERNAL_AUTH_MIDDLEWARE + [
+                 "django.contrib.messages.middleware.MessageMiddleware",
+                 "django.middleware.clickjacking.XFrameOptionsMiddleware"
+             ]
 # fmt: on
 
 TEMPLATES = [
