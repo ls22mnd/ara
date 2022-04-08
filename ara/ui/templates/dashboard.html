@@ -29,7 +29,7 @@
                   </div>
                   <small
                       data-toggle="tooltip" data-placement="right"
-                      title="{{ res.playbook.ended | format_date}}">
+                      title="{{ res.playbook.ended | format_date }}">
                     {{ res.playbook.ended | parse_date | timesince }} ago
                   </small>
                 </div>
@@ -45,8 +45,8 @@
       $('[data-toggle="tooltip"]').tooltip();
       $('.playbook-status').click((e) => {
         const { playbookId } = e.currentTarget.dataset;
-        location.href = `/playbooks/${playbookId}.html`;
-      })
+        window.open(`/playbooks/${playbookId}.html`);
+      });
     });
   </script>
 {% endblock %}
