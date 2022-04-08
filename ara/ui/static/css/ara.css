@@ -57,10 +57,6 @@
   filter: brightness(75%);
 }
 
-.playbook-status .alert small {
-  display: block;
-}
-
 .playbook-status .alert .playbook-name {
   overflow-x: hidden;
   text-overflow: ellipsis;

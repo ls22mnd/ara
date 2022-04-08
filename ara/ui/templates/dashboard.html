@@ -22,10 +22,16 @@
           <div class="card-body">
             <h5 class="card-title">{{ hostname }}</h5>
             {% for res in results %}
-              <div class="playbook-status">
+              <div class="playbook-status" data-playbook-id="{{ res.playbook.id }}">
                 <div class="alert alert-{{ res.status|get_play_alert_type }}" role="alert">
-                  <div class="playbook-name">{{ res.playbook|get_playbook_name }}</div>
-                  <small>{{ res.playbook.ended | parse_date | timesince }} ago</small>
+                  <div class="playbook-name">
+                    {{ res.playbook|get_playbook_name }}
+                  </div>
+                  <small
+                      data-toggle="tooltip" data-placement="right"
+                      title="{{ res.playbook.ended | format_date}}">
+                    {{ res.playbook.ended | parse_date | timesince }} ago
+                  </small>
                 </div>
               </div>
             {% endfor %}
@@ -34,4 +40,9 @@
       </div>
     {% endfor %}
   </div>
+  <script>
+    $(function () {
+      $('[data-toggle="tooltip"]').tooltip();
+    });
+  </script>
 {% endblock %}
