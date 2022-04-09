@@ -16,8 +16,8 @@ def get_playbook_name(playbook: Playbook):
 def get_play_alert_type(status: str):
     if status == 'running':
         return 'info'
-    elif status == 'completed':
+    elif status == 'success':
         return 'success'
-    elif status == 'failed':
+    elif status == 'fail':
         return 'danger'
     return 'dark'

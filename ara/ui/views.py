@@ -1,13 +1,15 @@
 import codecs
 import collections
+import json
 import operator
 
-from django.db.models import Q
+import redis
 from rest_framework import generics
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
 from ara.api import filters, models, serializers
+from ara.server import settings
 from ara.ui import forms
 from ara.ui.pagination import LimitOffsetPaginationWithLinks
 
@@ -343,24 +345,64 @@ class Dashboard(generics.ListAPIView):
     renderer_classes = [TemplateHTMLRenderer]
     template_name = "dashboard.html"
 
+    @staticmethod
+    def create_cache_key(host: models.Host, play: models.Play):
+        return f'dashboard:{host.id}:{play.id}'
+
+    def serialize(self, data):
+        cli = None
+        pipe = None
+        caches = {}
+        cache_keys = []
+        if settings.USE_REDIS:
+            cli = redis.Redis(settings.REDIS_HOST)
+            for res in data.values():
+                cache_keys.append(self.create_cache_key(res['host'], res['play']))
+            for i, res in enumerate(cli.mget(cache_keys)):
+                if res is None:
+                    caches[cache_keys[i]] = None
+                else:
+                    caches[cache_keys[i]] = json.loads(res)
+            pipe = cli.pipeline()
+
+        states = collections.defaultdict(list)
+        for i, key in enumerate(data):
+            hostname, playbook_id = key
+            if settings.USE_REDIS:
+                if (res := caches[cache_keys[i]]) is not None:
+                    states[hostname].append(res)
+                    continue
+
+            res = data[key]
+            state = dict(
+                host=serializers.SimpleHostSerializer(res['host']).data,
+                play=serializers.PlaySerializer(res['play']).data,
+                playbook=serializers.SimplePlaybookSerializer(res['playbook']).data,
+                status=res['status'],
+            )
+            if settings.USE_REDIS:
+                pipe.set(cache_keys[i], json.dumps(state))
+
+            states[hostname].append(state)
+
+        if settings.USE_REDIS:
+            pipe.execute()
+            pipe.close()
+            cli.close()
+
+        return collections.OrderedDict(sorted(states.items(), key=operator.itemgetter(0)))
+
     def get(self, request, *args, **kwargs):
         q = request.GET.get('q', None)
-        data = {}
+        status = request.GET.get('status', None)
+        data = collections.OrderedDict()
         result_qs = (
             models.Result.objects
                 .prefetch_related('host', 'play', 'play__playbook')
                 .order_by('host__id', 'playbook__id', '-play__id')
         )
         if q is not None:
-            result_qs = (
-                result_qs
-                    .select_related('host', 'playbook')
-                    .filter(
-                        Q(host__name__contains=q)
-                        | Q(playbook__name__contains=q)
-                        | Q(playbook__path__contains=q)
-                    )
-            )
+            result_qs = filters.DashboardFilter(request.GET, result_qs).qs
         results = result_qs.all()
 
         for r in results:
@@ -374,23 +416,13 @@ class Dashboard(generics.ListAPIView):
                     host=r.host,
                     play=r.play,
                     playbook=r.playbook,
-                    status='failed' if r.host.failed + r.host.unreachable > 0 else 'completed',
+                    status='fail' if r.host.failed + r.host.unreachable > 0 else 'success',
                 )
-
-        states = collections.defaultdict(list)
-        for key in data:
-            hostname, playbook_id = key
-            result = data[key]
-            states[hostname].append(dict(
-                host=serializers.SimpleHostSerializer(result['host']).data,
-                play=serializers.PlaySerializer(result['play']).data,
-                playbook=serializers.SimplePlaybookSerializer(result['playbook']).data,
-                status=result['status'],
-            ))
-        states = collections.OrderedDict(sorted(states.items(), key=operator.itemgetter(0)))
+        states = self.serialize(data)
 
         return Response(dict(
             page='dashboard',
             states=states,
+            status=status,
             static_generation=False,
         ))

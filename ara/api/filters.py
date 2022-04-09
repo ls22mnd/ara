@@ -17,6 +17,7 @@
 
 import django_filters
 from django.db import models as django_models
+from django.db.models import Q
 
 from ara.api import models as ara_models
 
@@ -56,7 +57,8 @@ class LabelFilter(BaseFilter):
 
 
 class PlaybookFilter(DateFilter):
-    ansible_version = django_filters.CharFilter(field_name="ansible_version", lookup_expr="icontains")
+    ansible_version = django_filters.CharFilter(field_name="ansible_version",
+                                                lookup_expr="icontains")
     controller = django_filters.CharFilter(field_name="controller", lookup_expr="icontains")
     name = django_filters.CharFilter(field_name="name", lookup_expr="icontains")
     path = django_filters.CharFilter(field_name="path", lookup_expr="icontains")
@@ -173,10 +175,14 @@ class LatestHostFilter(BaseFilter):
     unreachable__gt = django_filters.NumberFilter(field_name="host__unreachable", lookup_expr="gt")
     unreachable__lt = django_filters.NumberFilter(field_name="host__unreachable", lookup_expr="lt")
 
-    host__created_before = django_filters.IsoDateTimeFilter(field_name="host__created", lookup_expr="lte")
-    host__created_after = django_filters.IsoDateTimeFilter(field_name="host__created", lookup_expr="gte")
-    host__updated_before = django_filters.IsoDateTimeFilter(field_name="host__updated", lookup_expr="lte")
-    host__updated_after = django_filters.IsoDateTimeFilter(field_name="host__updated", lookup_expr="gte")
+    host__created_before = django_filters.IsoDateTimeFilter(field_name="host__created",
+                                                            lookup_expr="lte")
+    host__created_after = django_filters.IsoDateTimeFilter(field_name="host__created",
+                                                           lookup_expr="gte")
+    host__updated_before = django_filters.IsoDateTimeFilter(field_name="host__updated",
+                                                            lookup_expr="lte")
+    host__updated_after = django_filters.IsoDateTimeFilter(field_name="host__updated",
+                                                           lookup_expr="gte")
 
     # fmt: off
     order = django_filters.OrderingFilter(
@@ -251,3 +257,18 @@ class RecordFilter(BaseFilter):
         )
     )
     # fmt: on
+
+
+class DashboardFilter(BaseFilter):
+    q = django_filters.CharFilter(field_name="")
+
+    def result_filter(self, queryset, name, value):
+        return (
+            queryset
+                .select_related('host', 'playbook')
+                .filter(
+                    Q(host__name__contains=value)
+                    | Q(playbook__name__contains=value)
+                    | Q(playbook__path__contains=value)
+                )
+        )

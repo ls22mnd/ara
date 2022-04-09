@@ -6,14 +6,22 @@
   <div id="dashboard" class="row">
     <div class="col-12">
       <div class="row mb-3">
-        <form method="get" action="{% url 'ui:dashboard' %}" class="col-md-6 col-lg-4">
+        <form
+            method="get" action="{% url 'ui:dashboard' %}"
+            class="col-md-6 col-lg-4 form-inline">
           <label for="q" class="sr-only">Search</label>
           <input
-              type="text" class="form-control" id="q" name="q"
+              type="text" class="form-control" id="q" name="q" style="width: 360px"
               placeholder="host name or playbook name"
               value='{{ request.query_params.q }}' />
+          <label for="status" class="sr-only">Status</label>
+          <select id="status" name="status" class="form-control mx-1">
+            <option selected>All</option>
+            <option value="success">Success</option>
+            <option value="fail">Fail</option>
+          </select>
+          <button type="button" class="btn btn-primary ml-1">Search</button>
         </form>
-        <button type="button" class="btn btn-primary col-1">Search</button>
       </div>
     </div>
     {% for hostname, results in states.items %}
@@ -27,11 +35,15 @@
                   <div class="playbook-name">
                     {{ res.playbook|get_playbook_name }}
                   </div>
-                  <small
-                      data-toggle="tooltip" data-placement="right"
-                      title="{{ res.playbook.ended | format_date }}">
-                    {{ res.playbook.ended | parse_date | timesince }} ago
-                  </small>
+                  {% if res.playbook.ended %}
+                    <small
+                        class="d-block"
+                        title="{{ res.playbook.ended | format_date }}">
+                      {{ res.playbook.ended | parse_date | timesince }} ago
+                    </small>
+                  {% else %}
+                    <small>Running...</small>
+                  {% endif %}
                 </div>
               </div>
             {% endfor %}
@@ -42,7 +54,6 @@
   </div>
   <script>
     $(function () {
-      $('[data-toggle="tooltip"]').tooltip();
       $('.playbook-status').click((e) => {
         const { playbookId } = e.currentTarget.dataset;
         window.open(`/playbooks/${playbookId}.html`);
