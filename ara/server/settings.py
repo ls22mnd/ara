@@ -222,6 +222,9 @@ TIME_ZONE = settings.get("TIME_ZONE", LOCAL_TIME_ZONE)
 USE_I18N = False
 USE_L10N = False
 
+REDIS_HOST = os.environ.get('REDIS_HOST', None)
+USE_REDIS = bool(REDIS_HOST)
+
 # whitenoise serves static files without needing to use "collectstatic"
 WHITENOISE_USE_FINDERS = True
 # https://github.com/evansd/whitenoise/issues/215
@@ -270,7 +273,7 @@ if not os.path.exists(DEFAULT_SETTINGS) and "ARA_SETTINGS" not in os.environ:
     SETTINGS = dict(
         BASE_DIR=BASE_DIR,
         ALLOWED_HOSTS=ALLOWED_HOSTS.to_list(),
-        CORS_ORIGIN_WHITELIST=CORS_ORIGIN_WHITELIST.to_list(),
+        CORS_ORIGIN_WHITELIST=[],
         CORS_ORIGIN_REGEX_WHITELIST=CORS_ORIGIN_REGEX_WHITELIST.to_list(),
         CORS_ORIGIN_ALLOW_ALL=CORS_ORIGIN_ALLOW_ALL,
         CSRF_TRUSTED_ORIGINS=CSRF_TRUSTED_ORIGINS.to_list(),
