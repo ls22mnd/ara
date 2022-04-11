@@ -1,15 +1,10 @@
 import codecs
-import collections
-import json
-import operator
 
-import redis
 from rest_framework import generics
 from rest_framework.renderers import TemplateHTMLRenderer
 from rest_framework.response import Response
 
 from ara.api import filters, models, serializers
-from ara.server import settings
 from ara.ui import forms
 from ara.ui.pagination import LimitOffsetPaginationWithLinks
 
@@ -340,97 +335,10 @@ class Record(generics.RetrieveAPIView):
         return Response({"record": serializer.data, "static_generation": False, "page": "result"})
 
 
-class Dashboard(generics.ListAPIView):
+class Dashboard(generics.RetrieveAPIView):
     queryset = models.Host.objects.all()
     renderer_classes = [TemplateHTMLRenderer]
     template_name = "dashboard.html"
 
-    @staticmethod
-    def create_cache_key(host: models.Host, play: models.Play):
-        return f'dashboard:{host.id}:{play.id}'
-
-    def serialize(self, data):
-        cli = None
-        pipe = None
-        caches = {}
-        cache_keys = []
-        if settings.USE_REDIS:
-            cli = redis.Redis(settings.REDIS_HOST)
-            for res in data.values():
-                cache_keys.append(self.create_cache_key(res['host'], res['play']))
-            for i, res in enumerate(cli.mget(cache_keys)):
-                if res is None:
-                    caches[cache_keys[i]] = None
-                else:
-                    caches[cache_keys[i]] = json.loads(res)
-            pipe = cli.pipeline()
-
-        states = collections.defaultdict(list)
-        for i, key in enumerate(data):
-            hostname, playbook_id = key
-            if settings.USE_REDIS:
-                if (res := caches[cache_keys[i]]) is not None:
-                    states[hostname].append(res)
-                    continue
-
-            res = data[key]
-            state = dict(
-                host=serializers.SimpleHostSerializer(res['host']).data,
-                play=serializers.PlaySerializer(res['play']).data,
-                playbook=serializers.SimplePlaybookSerializer(res['playbook']).data,
-                status=res['status'],
-            )
-            if settings.USE_REDIS:
-                pipe.set(cache_keys[i], json.dumps(state))
-
-            states[hostname].append(state)
-
-        if settings.USE_REDIS:
-            pipe.execute()
-            pipe.close()
-            cli.close()
-
-        return collections.OrderedDict(sorted(states.items(), key=operator.itemgetter(0)))
-
     def get(self, request, *args, **kwargs):
-        q = request.GET.get('q', None)
-        status = request.GET.get('status', None)
-        data = collections.OrderedDict()
-        result_qs = (
-            models.Result.objects
-                .prefetch_related('host', 'play', 'play__playbook')
-                .order_by('host__id', 'playbook__id', '-play__id')
-        )
-        if q is not None:
-            result_qs = filters.DashboardFilter(request.GET, result_qs).qs
-        results = result_qs.all()
-
-        for r in results:
-            key = (r.host.name, r.playbook.id)
-            if key not in data:
-                data[key] = dict(host=r.host, play=None, playbook=None, status=None)
-
-            if (play := data[key]['play']) is None or r.play.id > play.id:
-                data[key]['play'] = r.play
-                data[key].update(
-                    host=r.host,
-                    play=r.play,
-                    playbook=r.playbook,
-                    status='fail' if r.host.failed + r.host.unreachable > 0 else 'success',
-                )
-        delete_keys = []
-        if status:
-            for key in data.keys():
-                if data[key]['status'] != status:
-                    delete_keys.append(key)
-        for key in delete_keys:
-            del data[key]
-
-        states = self.serialize(data)
-
-        return Response(dict(
-            page='dashboard',
-            states=states,
-            status=status,
-            static_generation=False,
-        ))
+        return Response(dict(static_generation=False, page='dashboard'))

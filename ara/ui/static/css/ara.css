@@ -45,46 +45,69 @@
   border-bottom: 1px solid #444;
 }
 
-.playbook-status {
-  display: flex;
-}
-
-.playbook-status .alert {
-  width: 100%;
-  margin-bottom: 0.5rem;
-  padding: 0.25rem 0.75rem;
-}
-
-.playbook-status .alert:hover {
-  filter: brightness(90%);
-}
-
-.playbook-status-header {
+.play-result-container {
   display: flex;
   align-items: center;
-  justify-content: space-between;
+  border-bottom: 1px solid #444;
+  padding: 0.5rem 0;
+  overflow-x: scroll;
 }
 
-.playbook-status-footer {
-  display: flex;
-  justify-content: space-between;
-  align-content: center;
-}
-
-.playbook-status-footer a {
-  padding: 0 0 0 0.5rem;
-}
-
-.playbook-menu .btn {
-  padding: 0 0.5rem;
-}
-
-.playbook-labels {
-  display: flex;
-}
-
-.playbook-status .alert .playbook-name {
+.play-result-container .play-hostname {
+  width: 200px;
+  min-width: 200px;
+  font-size: 0.75rem;
+  font-weight: bold;
   overflow-x: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.play-result-container .play-hostname .statuses .badge {
+  width: 20px;
+  margin-right: 2px;
+}
+
+.play-result-container .play-result-item-list {
+  display: flex;
+}
+
+.play-result-item-list .play-result-item {
+  margin-right: 0.25rem;
+  padding: 0;
+  width: 160px;
+  max-width: 160px;
+  text-align: center;
+}
+
+.play-result-item.hidden {
+  display: none;
+}
+
+.play-result-item .alert {
+  width: 100%;
+  padding: 0 0.25rem;
+  margin-bottom: 0;
+  font-size: 0.5rem;
+  cursor: pointer;
+}
+
+.play-result-item .alert:hover {
+  filter: brightness(75%);
+}
+
+.play-result-item .alert .play-result {
+  text-align: center;
+}
+
+.play-result-item .alert .playbook-name {
+  text-transform: capitalize;
+  overflow-x: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.popover-body .btn {
+  font-size: 0.5rem;
+  padding: 0.125rem 0.25rem;
 }

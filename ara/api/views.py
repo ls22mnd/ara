@@ -14,8 +14,8 @@
 #
 #  You should have received a copy of the GNU General Public License
 #  along with ARA.  If not, see <http://www.gnu.org/licenses/>.
-
-from rest_framework import viewsets
+from django.db.models import Max
+from rest_framework import mixins, viewsets
 
 from ara.api import filters, models, serializers
 
@@ -168,6 +168,27 @@ class ResultViewSet(viewsets.ModelViewSet):
         else:
             # create/update/destroy
             return serializers.ResultSerializer
+
+
+class LatestResultViewSet(mixins.ListModelMixin, viewsets.GenericViewSet):
+    paginator = None
+
+    def get_queryset(self):
+        latest_play_ids = (
+            models.Playbook.objects
+                .annotate(latest_play_id=Max('plays__id'))
+                .values_list('latest_play_id', flat=True)
+        )
+        return (
+            models.Result.objects
+                .filter(play_id__in=latest_play_ids)
+                .prefetch_related('host', 'play', 'playbook')
+                .order_by('playbook_id')
+                .all()
+        )
+
+    def get_serializer_class(self):
+        return serializers.LatestResultSerializer
 
 
 class FileViewSet(viewsets.ModelViewSet):

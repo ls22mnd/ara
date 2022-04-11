@@ -5,58 +5,210 @@
 {% block body %}
   <div id="dashboard" class="row">
     <div class="col-12">
-      <div class="row mb-3">
-        <form
-            method="get" action="{% url 'ui:dashboard' %}"
-            class="col-md-6 col-lg-4 form-inline">
-          <label for="q" class="sr-only">Search</label>
-          <input
-              type="text" class="form-control" id="q" name="q" style="width: 360px"
-              placeholder="host name or playbook name"
-              value='{{ request.query_params.q }}' />
-          <label for="status" class="sr-only">Status</label>
-          <select id="status" name="status" class="form-control mx-1">
-            <option value="">All</option>
-            <option value="success"{% if status == 'success' %} selected{% endif %}>Success</option>
-            <option value="fail"{% if status == 'fail' %} selected{% endif %}>Fail</option>
-          </select>
-          <button type="submit" class="btn btn-primary ml-1">Search</button>
-        </form>
-      </div>
-    </div>
-    {% for hostname, results in states.items %}
-      <div class="col-xs-6 col-lg-3">
-        <div class="card mb-4">
-          <div class="card-body">
-            <h5 class="card-title">{{ hostname }}</h5>
-            {% for res in results %}
-              <div class="playbook-status" data-playbook-id="{{ res.playbook.id }}">
-                <div class="alert alert-{{ res.status|get_play_alert_type }}" role="alert">
-                  <div class="playbook-status-header">
-                    <div class="playbook-name">
-                      {{ res.playbook|get_playbook_name }}
-                    </div>
-                    <div class="playbook-menu">
-                      <button type="button" class="btn btn-sm btn-info">Run</button>
-                    </div>
-                  </div>
-                  <div class="playbook-status-footer">
-                    {% if res.playbook.ended %}
-                      <small class="d-block font-weight-light">
-                        {{ res.playbook.ended | parse_date | timesince }} ago
-                      </small>
-                    {% else %}
-                      <small>Running...</small>
-                    {% endif %}
-                    {% url 'ui:playbook' res.playbook.id as playbook_url %}
-                    <a href="{{ playbook_url }}" class="btn btn-sm btn-link">View result</a>
-                  </div>
-                </div>
-              </div>
-            {% endfor %}
-          </div>
+      <div class="border-bottom border-primary pb-2 mb-1">
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" id="status-success-check" value="success" checked>
+          <label class="form-check-label text-success" for="status-success-check">Success</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" id="status-warning-check" value="warning" checked>
+          <label class="form-check-label text-warning" for="status-warning-check">Warn</label>
+        </div>
+        <div class="form-check form-check-inline">
+          <input class="form-check-input" type="checkbox" id="status-danger-check" value="danger" checked>
+          <label class="form-check-label text-danger" for="status-danger-check">Fail</label>
         </div>
       </div>
-    {% endfor %}
+    </div>
+    <div id="play-result-box" class="col-12">
+    </div>
   </div>
+  <script>
+    const STATUS_CLASSES = {
+      ok: 'good',
+      failed: 'bad',
+      skipped: 'good',
+      unreachable: 'bad',
+      unknown: 'good',
+      changed: 'good',
+      ignored: 'good',
+    };
+    const ALERT_CLASSES = ['success', 'warning', 'danger'];
+
+    $(document).ready(() => {
+      const has = Object.prototype.hasOwnProperty;
+      const state = {};
+      const $playResultBox = $('#play-result-box');
+      const $statusChecks = $('.form-check input');
+
+      function initResult({ host, play, playbook }) {
+        return {
+          host,
+          play,
+          playbook,
+          plays: 0,
+          status: {
+            ok: 0,
+            failed: 0,
+            skipped: 0,
+            unreachable: 0,
+            unknown: 0,
+            changed: 0,
+            ignored: 0,
+          },
+        };
+      }
+
+      function fetchResults() {
+        return fetch('/api/v1/latestresults')
+          .then((res) => res.json())
+          .then((results) => {
+            const data = {};
+            results.forEach((res) => {
+              const key = `${res.host.name}:${res.playbook.id}`;
+              if (!has.call(data, key)) {
+                data[key] = initResult(res);
+              }
+              data[key].plays += 1;
+              data[key].status[res.status] += 1;
+            });
+            return data;
+          });
+      }
+
+      function updatePlayResultContainer(hostname, results) {
+        let $container = $(`.play-result-container[data-hostname="${hostname}"]`);
+        const resultCards = {};
+        $container.find(`.play-result-item`).each((i, $card) => {
+          const { playbookId, playId } = $card.data();
+          const key = `${playbookId}:${playId}`;
+          resultCards[key] = $card;
+        });
+
+        if (!$container.length) {
+          $container = $(`
+            <div class="play-result-container" data-hostname="${hostname}" data-toggle="popover">
+              <div class="play-hostname">
+                <span class="statuses"></span>
+                <span class="hostname">${hostname}</span>
+              </div>
+              <div class="play-result-item-list"></div>
+            </div>`
+          );
+          $playResultBox.append($container);
+        }
+
+        const $hostname = $container.find('.play-hostname');
+        const $playResultList = $container.find('.play-result-item-list');
+        let $prevCard;
+        const alerts = ALERT_CLASSES.reduce((res, cls) => (res[cls] = 0, res), {});
+        results.forEach((res) => {
+          const { host, playbook, play, alert, status } = res;
+          const statusText = `OK:${status.good} / FAIL:${status.bad}`;
+          const key = `${playbook.id}:${play.id}`;
+          alerts[alert] += 1;
+
+          if (has.call(resultCards, key)) {
+            const $card = resultCards[key];
+            $card.find('.alert').attr('class', `alert alert-${alert}`)
+            $card.find('.play-result').text(statusText);
+            $prevCard = $card;
+            return;
+          }
+
+          const [type, name] = res.playbook.name.split('/');
+          const playbookName = `${type.slice(0, 2)}::${name}`;
+          const $card = $(`
+            <div id="#${hostname}-${playbookName}" class="play-result-item">
+              <div class="alert alert-${alert}">
+                <div class="playbook-name">${playbookName}</div>
+                <div class="play-result">${statusText}</div>
+              </div>
+            </div>`
+          );
+          $card.data('playbookId', playbook.id);
+          $card.data('playId', play.id);
+          $card.data('hostId', host.id);
+
+          if ($prevCard === undefined) {
+            $playResultList.append($card);
+          } else {
+            $prevCard.after($card);
+            $playResultList.append($card);
+          }
+          $prevCard = $card;
+        });
+
+        const $statuses = $('<span class="statuses"></span>');
+        ALERT_CLASSES.forEach((status) => {
+          $statuses.append(`<span class="badge rounded-pill bg-${status}">${alerts[status]}</span>`);
+        });
+        $hostname.find('.statuses').replaceWith($statuses);
+      }
+
+      fetchResults().then((results) => {
+        Object
+          .values(results)
+          .sort((a, b) => a.host.id - b.host.id)
+          .forEach((res) => {
+            const { host, playbook, play, plays } = res;
+            const status = { good: 0, bad: 0 };
+            const k = host.name;
+            let alert = 'warning';
+
+            if (!has.call(state, k)) {
+              state[k] = [];
+            }
+
+            Object.entries(res.status).forEach(([k, v]) => {
+              status[STATUS_CLASSES[k]] += v;
+            });
+
+            if (status.good === plays) {
+              alert = 'success';
+            } else if (status.bad === plays) {
+              alert = 'danger';
+            }
+            state[k].push({ host, playbook, play, status, alert });
+          });
+
+        Object.entries(state)
+          .forEach(([hostname, results]) => updatePlayResultContainer(hostname, results));
+      });
+
+      $statusChecks.on('change', () => {
+        const statuses = $statusChecks.filter(':checked').map((i, el) => el.value).get().map((v) => `alert-${v}`);
+        $('.alert').each((i, el) => {
+          const show = statuses.some((status) => el.classList.contains(status));
+          const parent = el.parentElement;
+          if (show) {
+            parent.classList.remove('hidden');
+          } else {
+            parent.classList.add('hidden');
+          }
+        });
+      });
+
+      $playResultBox.on('click', '.play-result-item', (e) => {
+        const $res = $(e.currentTarget);
+        const { playbookId, playId, hostId } = $res.data();
+        const content = $(`
+          <div class="d-flex flex-column">
+            <button type="button" class="btn btn-sm btn-primary">Run &#10095;</button>
+            <div class="dropdown-divider"></div>
+            <a class="btn btn-link btn-sm" href="/playbooks/${playbookId}.html?host=${hostId}&play=${playId}" target="_blank">View result</a>
+          </div>
+        `);
+        $res.popover({ content, animation: false, html: true })
+      });
+
+      $(document).on('click', function (e) {
+        $('[data-toggle="popover"],[data-original-title]').each(function () {
+          if (!$(this).is(e.target) && $(this).has(e.target).length === 0 && $('.popover').has(e.target).length === 0) {
+              (($(this).popover('hide').data('bs.popover')||{}).inState||{}).click = false
+          }
+        });
+      });
+    });
+  </script>
 {% endblock %}

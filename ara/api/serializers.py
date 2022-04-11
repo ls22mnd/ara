@@ -189,6 +189,30 @@ class DetailedResultSerializer(ResultStatusSerializer):
     content = ara_fields.CompressedObjectField(read_only=True)
 
 
+class _PlaybookSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Playbook
+        exclude = (
+            'created', 'updated', 'arguments', 'labels', 'path', 'controller', 'ansible_version',
+        )
+
+
+class _PlaySerializer(serializers.ModelSerializer):
+    class Meta:
+        model = models.Play
+        exclude = ('playbook', 'uuid', 'created', 'updated')
+
+
+class LatestResultSerializer(ResultStatusSerializer):
+    class Meta:
+        model = models.Result
+        exclude = ('content', 'delegated_to',)
+
+    playbook = _PlaybookSerializer(read_only=True)
+    play = _PlaySerializer(read_only=True)
+    host = SimpleHostSerializer(read_only=True)
+
+
 class DetailedFileSerializer(FileSha1Serializer):
     class Meta:
         model = models.File
@@ -315,7 +339,8 @@ class TaskSerializer(serializers.ModelSerializer):
         model = models.Task
         fields = "__all__"
 
-    tags = ara_fields.CompressedObjectField(default=ara_fields.EMPTY_LIST, help_text="A list containing Ansible tags")
+    tags = ara_fields.CompressedObjectField(default=ara_fields.EMPTY_LIST,
+                                            help_text="A list containing Ansible tags")
 
 
 class HostSerializer(serializers.ModelSerializer):
@@ -336,9 +361,11 @@ class HostSerializer(serializers.ModelSerializer):
 
     def create(self, validated_data):
         host, created = models.Host.objects.get_or_create(
-            name=validated_data["name"], playbook=validated_data["playbook"], defaults=validated_data
+            name=validated_data["name"], playbook=validated_data["playbook"],
+            defaults=validated_data
         )
-        models.LatestHost.objects.update_or_create(name=validated_data["name"], defaults={"host": host})
+        models.LatestHost.objects.update_or_create(name=validated_data["name"],
+                                                   defaults={"host": host})
         return host
 
 
@@ -385,5 +412,6 @@ class RecordSerializer(serializers.ModelSerializer):
         fields = "__all__"
 
     value = ara_fields.CompressedObjectField(
-        default=ara_fields.EMPTY_STRING, help_text="A string, list, dict, json or other formatted data"
+        default=ara_fields.EMPTY_STRING,
+        help_text="A string, list, dict, json or other formatted data"
     )

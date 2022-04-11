@@ -27,6 +27,7 @@ router.register("tasks", views.TaskViewSet, basename="task")
 router.register("hosts", views.HostViewSet, basename="host")
 router.register("latesthosts", views.LatestHostViewSet, basename="latesthost")
 router.register("results", views.ResultViewSet, basename="result")
+router.register("latestresults", views.LatestResultViewSet, basename="latestresult")
 router.register("files", views.FileViewSet, basename="file")
 router.register("records", views.RecordViewSet, basename="record")
 
