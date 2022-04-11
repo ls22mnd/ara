@@ -16,11 +16,11 @@
               value='{{ request.query_params.q }}' />
           <label for="status" class="sr-only">Status</label>
           <select id="status" name="status" class="form-control mx-1">
-            <option selected>All</option>
-            <option value="success">Success</option>
-            <option value="fail">Fail</option>
+            <option value="">All</option>
+            <option value="success"{% if status == 'success' %} selected{% endif %}>Success</option>
+            <option value="fail"{% if status == 'fail' %} selected{% endif %}>Fail</option>
           </select>
-          <button type="button" class="btn btn-primary ml-1">Search</button>
+          <button type="submit" class="btn btn-primary ml-1">Search</button>
         </form>
       </div>
     </div>

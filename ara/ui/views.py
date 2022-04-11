@@ -418,6 +418,14 @@ class Dashboard(generics.ListAPIView):
                     playbook=r.playbook,
                     status='fail' if r.host.failed + r.host.unreachable > 0 else 'success',
                 )
+        delete_keys = []
+        if status:
+            for key in data.keys():
+                if data[key]['status'] != status:
+                    delete_keys.append(key)
+        for key in delete_keys:
+            del data[key]
+
         states = self.serialize(data)
 
         return Response(dict(
