@@ -32,18 +32,25 @@
             {% for res in results %}
               <div class="playbook-status" data-playbook-id="{{ res.playbook.id }}">
                 <div class="alert alert-{{ res.status|get_play_alert_type }}" role="alert">
-                  <div class="playbook-name">
-                    {{ res.playbook|get_playbook_name }}
+                  <div class="playbook-status-header">
+                    <div class="playbook-name">
+                      {{ res.playbook|get_playbook_name }}
+                    </div>
+                    <div class="playbook-menu">
+                      <button type="button" class="btn btn-sm btn-info">Run</button>
+                    </div>
                   </div>
-                  {% if res.playbook.ended %}
-                    <small
-                        class="d-block"
-                        title="{{ res.playbook.ended | format_date }}">
-                      {{ res.playbook.ended | parse_date | timesince }} ago
-                    </small>
-                  {% else %}
-                    <small>Running...</small>
-                  {% endif %}
+                  <div class="playbook-status-footer">
+                    {% if res.playbook.ended %}
+                      <small class="d-block font-weight-light">
+                        {{ res.playbook.ended | parse_date | timesince }} ago
+                      </small>
+                    {% else %}
+                      <small>Running...</small>
+                    {% endif %}
+                    {% url 'ui:playbook' res.playbook.id as playbook_url %}
+                    <a href="{{ playbook_url }}" class="btn btn-sm btn-link">View result</a>
+                  </div>
                 </div>
               </div>
             {% endfor %}
@@ -52,12 +59,4 @@
       </div>
     {% endfor %}
   </div>
-  <script>
-    $(function () {
-      $('.playbook-status').click((e) => {
-        const { playbookId } = e.currentTarget.dataset;
-        window.open(`/playbooks/${playbookId}.html`);
-      });
-    });
-  </script>
 {% endblock %}

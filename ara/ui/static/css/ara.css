@@ -47,7 +47,6 @@
 
 .playbook-status {
   display: flex;
-  cursor: pointer;
 }
 
 .playbook-status .alert {
@@ -57,7 +56,31 @@
 }
 
 .playbook-status .alert:hover {
-  filter: brightness(75%);
+  filter: brightness(90%);
+}
+
+.playbook-status-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.playbook-status-footer {
+  display: flex;
+  justify-content: space-between;
+  align-content: center;
+}
+
+.playbook-status-footer a {
+  padding: 0 0 0 0.5rem;
+}
+
+.playbook-menu .btn {
+  padding: 0 0.5rem;
+}
+
+.playbook-labels {
+  display: flex;
 }
 
 .playbook-status .alert .playbook-name {
