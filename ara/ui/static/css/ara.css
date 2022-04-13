@@ -90,6 +90,8 @@
   margin-bottom: 0;
   font-size: 0.5rem;
   cursor: pointer;
+  color: #000;
+  font-weight: bold;
 }
 
 .play-result-item .alert:hover {
